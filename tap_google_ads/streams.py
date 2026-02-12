@@ -11,6 +11,7 @@ from google.api_core.exceptions import ServerError, TooManyRequests
 from requests.exceptions import ReadTimeout
 import backoff
 from . import report_definitions
+from typing import Optional
 
 LOGGER = singer.get_logger()
 
@@ -84,10 +85,10 @@ def get_selected_fields(stream_mdata):
     for mdata in stream_mdata:
         if mdata["breadcrumb"]:
             inclusion = mdata["metadata"].get("inclusion")
-            selected = mdata["metadata"].get("selected")
+            selected = mdata["metadata"].get("selected", "true")
+            
             if utils.should_sync_field(inclusion, selected) and mdata["breadcrumb"][1] != "_sdc_record_hash":
                 selected_fields.update(mdata["metadata"]["tap-google-ads.api-field-names"])
-
     return selected_fields
 
 
@@ -285,6 +286,24 @@ class BaseStream:  # pylint: disable=too-many-instance-attributes
 
         self.build_stream_metadata()
 
+    
+    def get_custom_fields(self, fields_dict: Optional[dict], stream_name: str)  -> Optional[list]:
+        """Getting custom fields of the stream
+
+        Args:
+            fields (Optional[dict]): a dict with custon fields if defined
+            stream_name (str): the associated stream name
+
+        Returns:
+            Optional[list]: the list of fields of the given stream
+        """
+        custom_fields = None
+        if fields_dict and stream_name in fields_dict:
+            custom_fields = fields_dict.get( stream_name )
+        elif self.fields:
+            custom_fields = [ field for field in self.fields if not field.startswith('segments') and not field.startswith('bidding_strategy') ]
+                                    
+        return custom_fields
 
     def extract_field_information(self, resource_schema):
         self.field_exclusions = defaultdict(set)
@@ -426,7 +445,12 @@ class BaseStream:  # pylint: disable=too-many-instance-attributes
         resource_name = self.google_ads_resource_names[0]
         stream_name = stream["stream"]
         stream_mdata = stream["metadata"]
-        selected_fields = get_selected_fields(stream_mdata)
+        
+        if cf := self.get_custom_fields(config.get("fields"), stream_name):
+            selected_fields = cf
+        else: 
+            selected_fields = get_selected_fields(stream_mdata)
+        
         state = singer.set_currently_syncing(state, [stream_name, customer["customerId"]])
         singer.write_state(state)
 
@@ -458,7 +482,8 @@ class BaseStream:  # pylint: disable=too-many-instance-attributes
         last_pk_fetched_value = last_pk_fetched.get('last_pk_fetched')
 
         with metrics.record_counter(stream_name) as counter:
-
+            
+            time_extracted = utils.now()
             # Loop until the last page.
             while is_more_records:
                 query = create_core_stream_query(resource_name, selected_fields, last_pk_fetched_value, self.filter_param, composite_pks, limit=limit)
@@ -475,7 +500,10 @@ class BaseStream:  # pylint: disable=too-many-instance-attributes
                         json_message = google_message_to_json(message)
                         transformed_message = self.transform_keys(json_message)
                         record = transformer.transform(transformed_message, stream["schema"], singer.metadata.to_map(stream_mdata))
-                        singer.write_record(stream_name, record)
+                        singer.write_record(
+                            stream_name=stream_name,
+                            record=record,
+                            time_extracted=time_extracted)
                         counter.increment()
                         num_rows = num_rows + 1
                         if stream_name in limit_not_possible:
@@ -700,7 +728,12 @@ class ReportStream(BaseStream):
         resource_name = self.google_ads_resource_names[0]
         stream_name = stream["stream"]
         stream_mdata = stream["metadata"]
-        selected_fields = get_selected_fields(stream_mdata)
+        
+        if cf := self.get_custom_fields(config.get("fields"), stream_name):
+            selected_fields = cf
+        else: 
+            selected_fields = get_selected_fields(stream_mdata)
+        
         replication_key = "date"
         state = singer.set_currently_syncing(state, [stream_name, customer["customerId"]])
         singer.write_state(state)
@@ -738,6 +771,7 @@ class ReportStream(BaseStream):
         while query_date <= end_date:
             query = create_report_query(resource_name, selected_fields, query_date)
             LOGGER.info(f"Requesting {stream_name} data for {utils.strftime(query_date, '%Y-%m-%d')}.")
+            time_extracted = utils.now()
 
             try:
                 response = make_request(gas, query, customer["customerId"], config)
@@ -755,7 +789,10 @@ class ReportStream(BaseStream):
                     record = transformer.transform(transformed_message, stream["schema"])
                     record["_sdc_record_hash"] = generate_hash(record, stream_mdata)
 
-                    singer.write_record(stream_name, record)
+                    singer.write_record(
+                            stream_name=stream_name,
+                            record=record,
+                            time_extracted=time_extracted)
 
             new_bookmark_value = {replication_key: utils.strftime(query_date)}
             singer.write_bookmark(state, stream["tap_stream_id"], customer["customerId"], new_bookmark_value)
@@ -767,6 +804,22 @@ class ReportStream(BaseStream):
 
 def initialize_core_streams(resource_schema):
     return {
+        "campaign_asset": BaseStream(
+            report_definitions.CAMPAIGN_ASSET_FIELDS,
+            ["campaign_asset"],
+            resource_schema,
+            ["resource_name"],
+            {"customer_id",
+             "asset_id"}
+        ),
+        "asset": BaseStream(
+            report_definitions.ASSET_FIELDS,
+            ["asset"],
+            resource_schema,
+            ["id"],
+            {"customer_id"},
+            filter_param = "asset.id"
+        ),
         "accessible_bidding_strategies": BaseStream(
             report_definitions.ACCESSIBLE_BIDDING_STRATEGY_FIELDS,
             ["accessible_bidding_strategy"],

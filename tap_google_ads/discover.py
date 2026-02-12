@@ -9,7 +9,8 @@ from tap_google_ads.streams import initialize_reports
 
 LOGGER = singer.get_logger()
 
-STREAMS = [
+STREAMS = ["campaign_asset",
+    "asset",
     "accessible_bidding_strategy",
     "ad_group",
     "ad_group_ad",
@@ -128,7 +129,7 @@ def build_resource_metadata(api_objects, resource):
         7: {"type": ["null", "integer"]},
         8: {"type": ["null", "integer"]},
         9: {"type": ["null", "object", "string"], "properties": {}},
-        10: {"type": ["null", "object", "string"], "properties": {}},
+        10: {"type": ["null", "string"], "properties": {}},
         11: {"type": ["null", "string"]},
         12: {"type": ["null", "integer"]},
     }
