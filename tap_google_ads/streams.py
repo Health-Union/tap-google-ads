@@ -15,7 +15,7 @@ from typing import Optional
 
 LOGGER = singer.get_logger()
 
-API_VERSION = "v19"
+API_VERSION = "v20"
 
 API_PARAMETERS = {
     "omit_unselected_resource_names": "true"
@@ -868,6 +868,13 @@ def initialize_core_streams(resource_schema):
                 "customer_id",
              },
             filter_param = "ad_group_ad.ad.id"
+        ),
+        "assets": BaseStream(
+            report_definitions.ASSET_FIELDS,
+            ["asset"],
+            resource_schema,
+            ["id"],
+            filter_param="asset.id"
         ),
         "bidding_strategies": BaseStream(
             report_definitions.BIDDING_STRATEGY_FIELDS,

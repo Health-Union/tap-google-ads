@@ -3,28 +3,28 @@
 from setuptools import setup
 
 setup(name='tap-google-ads',
-      version='1.9.1',  # there is no official update to V19 so was increased only PATCH in version
+      version='2.0.1',
       description='Singer.io tap for extracting data from the Google Ads API',
       author='Stitch',
       url='http://singer.io',
       classifiers=['Programming Language :: Python :: 3 :: Only'],
       py_modules=['tap_google_ads'],
       install_requires=[
-          'singer-python==6.0.0',
-          'requests==2.26.0',
+          'singer-python==6.1.1',
+          'requests==2.32.4',
           'backoff==2.2.1',
-          'google-ads==25.2.0',     # https://github.com/googleads/google-ads-python/pull/912/files
-          'protobuf==5.28.0',
+          'google-ads==27.0.0',
+          'protobuf==6.33.4',
 
           # Necessary to handle gRPC exceptions properly, documented
           # in an issue here: https://github.com/googleapis/python-api-core/issues/301
-          'grpcio-status==1.66.1',
+          'grpcio-status==1.73.1',
       ],
       extras_require= {
           'dev': [
               'pylint',
-              'nose',
               'ipdb',
+              'setuptools',
           ]
       },
       entry_points='''

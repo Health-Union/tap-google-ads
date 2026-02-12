@@ -14,6 +14,7 @@ This tap:
   - [Campaign Asset](https://developers.google.com/google-ads/api/reference/rpc/v15/CampaignAsset)
   - [Ad Groups](https://developers.google.com/google-ads/api/reference/rpc/v10/AdGroup)
   - [Ads](https://developers.google.com/google-ads/api/reference/rpc/v10/Ad)
+  - [Assets](https://developers.google.com/google-ads/api/reference/rpc/v20/Asset)
   - [Bidding Strategies](https://developers.google.com/google-ads/api/reference/rpc/v10/BiddingStrategy)
   - [Call Details](https://developers.google.com/google-ads/api/reference/rpc/v10/CallView)
   - [Campaigns](https://developers.google.com/google-ads/api/reference/rpc/v10/Campaign)
