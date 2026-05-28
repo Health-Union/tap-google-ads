@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.1.0
+  * Upgrade Google Ads API version from v20 to [v24](https://developers.google.com/google-ads/api/fields/v24/overview) [#106](https://github.com/singer-io/tap-google-ads/pull/106)
+  * Upgrade `google-ads` SDK from 27.0.0 to 30.1.0
+  * Add new fields or rename deprecated fields.
+  * Bump protobuf and requests versions for dependabot issue [#107](https://github.com/singer-io/tap-google-ads/pull/107)
+
+## v2.0.2
+  * Bump protobuf for dependabot issue [#105](https://github.com/singer-io/tap-google-ads/pull/105)
+
 ## v2.0.1
   * Bump dependency versions for dependabot issue [#104](https://github.com/singer-io/tap-google-ads/pull/104)
 
